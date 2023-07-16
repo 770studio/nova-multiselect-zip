@@ -1,43 +1,43 @@
 <template>
-  <DefaultField :field="currentField" :showHelpText="showHelpText" :errors="errors">
+  <DefaultField :errors="errors" :field="currentField" :showHelpText="showHelpText">
     <template #field>
       <div class="outl1ne-multiselect-field flex flex-col">
         <!-- Multi select field -->
         <multiselect
           v-if="!reorderMode"
-          @input="handleChange"
-          @open="handleOpen"
-          @search-change="tryToFetchOptions"
-          track-by="value"
-          label="label"
-          :group-label="isOptionGroups ? 'label' : void 0"
-          :group-values="isOptionGroups ? 'values' : void 0"
-          :group-select="currentField.groupSelect || false"
           ref="multiselect"
-          :value="selected"
-          :options="currentField.apiUrl ? asyncOptions : computedOptions"
-          :internal-search="!currentField.apiUrl"
           :class="[errorClasses, { 'has-optiongroup': isOptionGroups }]"
-          :disabled="currentField.readonly"
-          :placeholder="currentField.placeholder || currentField.name"
+          :clearOnSelect="currentField.clearOnSelect || false"
           :close-on-select="currentField.max === 1 || !isMultiselect"
-          :multiple="isMultiselect"
-          :max="max || currentField.max || null"
-          :optionsLimit="currentField.optionsLimit || 1000"
+          :disabled="currentField.readonly"
+          :group-label="isOptionGroups ? 'label' : void 0"
+          :group-select="currentField.groupSelect || false"
+          :group-values="isOptionGroups ? 'values' : void 0"
+          :internal-search="!currentField.apiUrl"
           :limit="currentField.limit"
           :limitText="count => __('novaMultiselect.limitText', { count: String(count || '') })"
-          selectLabel=""
           :loading="isLoading"
-          selectGroupLabel=""
-          selectedLabel=""
-          deselectLabel=""
-          deselectGroupLabel=""
-          :clearOnSelect="currentField.clearOnSelect || false"
+          :max="max || currentField.max || null"
+          :multiple="isMultiselect"
+          :options="currentField.apiUrl ? asyncOptions : computedOptions"
+          :optionsLimit="currentField.optionsLimit || 1000"
+          :placeholder="currentField.placeholder || currentField.name"
           :taggable="currentField.taggable || false"
+          :value="selected"
+          deselectGroupLabel=""
+          deselectLabel=""
+          label="label"
+          selectGroupLabel=""
+          selectLabel=""
+          selectedLabel=""
+          track-by="value"
+          @input="handleChange"
+          @open="handleOpen"
           @tag="addTag"
+          @search-change="tryToFetchOptions"
         >
           <template #maxElements>
-            {{ __('novaMultiselect.maxElements', { max: String(currentField.max || '') }) }}
+            {{ __('novaMultiselect.maxElements', {max: String(currentField.max || '')}) }}
           </template>
 
           <template #noResult>
@@ -45,13 +45,15 @@
           </template>
 
           <template #noOptions>
-            {{ currentField.apiUrl ? __('novaMultiSelect.startTypingForOptions') : __('novaMultiselect.noOptions') }}
+            {{
+              currentField.apiUrl ? __('novaMultiSelect.startTypingForOptions') : __('novaMultiselect.noOptions')
+            }}
           </template>
 
           <template #clear>
             <div
-              class="multiselect__clear"
               v-if="currentField.nullable && (isMultiselect ? value.length : value)"
+              class="multiselect__clear"
               @mousedown.prevent.stop="value = isMultiselect ? [] : null"
             />
           </template>
@@ -61,7 +63,7 @@
           </template>
 
           <template #tag="{ option, remove }">
-            <form-multiselect-field-tag :option="option" :remove="remove" />
+            <form-multiselect-field-tag :option="option" :remove="remove"/>
           </template>
         </multiselect>
 
@@ -85,20 +87,27 @@
         >
           {{ __(reorderMode ? 'novaMultiselect.doneReordering' : 'novaMultiselect.reorder') }}
         </div>
+
+
+        <div v-if="currentField.zipLayout" class="space-y-1">
+                    <textarea v-model="zipCodes"
+                              class="block w-full form-control form-input form-input-bordered py-3 h-auto"
+                              placeholder="add multiple lines" rows="5"></textarea>
+        </div>
       </div>
     </template>
   </DefaultField>
 </template>
 
 <script>
-import { DependentFormField, HandlesValidationErrors } from 'laravel-nova';
+import {DependentFormField, HandlesValidationErrors} from 'laravel-nova';
 import HandlesFieldValue from '../mixins/HandlesFieldValue';
 import Multiselect from 'vue-multiselect/src/Multiselect';
 import VueDraggable from 'vuedraggable';
 import debounce from 'lodash/debounce';
 
 export default {
-  components: { Multiselect, VueDraggable },
+  components: {Multiselect, VueDraggable},
 
   mixins: [HandlesValidationErrors, HandlesFieldValue, DependentFormField],
 
@@ -112,9 +121,11 @@ export default {
     distinctValues: [],
     isLoading: false,
     isInitialized: false,
+    zipCodes: ''
   }),
 
   mounted() {
+
     window.addEventListener('scroll', this.repositionDropdown);
     this.onSyncedField();
 
@@ -137,7 +148,7 @@ export default {
             if (newOptions.find(o => o.value === value)) return;
 
             let label = this.field.optionsDependOnOptions[option.value][value];
-            newOptions.push({ label, value });
+            newOptions.push({label, value});
           });
         });
 
@@ -212,6 +223,10 @@ export default {
       if (this.isMultiselect) {
         const valuesArray = this.getInitialFieldValuesArray();
         this.value = valuesArray && valuesArray.length ? valuesArray.map(this.getValueFromOptions).filter(Boolean) : [];
+
+        if (this.currentField.zipLayout) {
+          this.zipCodes = this.value.map(v => v.label).join("\r\n");
+        }
       } else {
         this.value = this.getValueFromOptions(this.currentField.value);
       }
@@ -223,9 +238,11 @@ export default {
     fillIfVisible(formData, attribute) {
       if (this.isMultiselect) {
         if (this.value && this.value.length) {
-          this.value.forEach((v, i) => {
-            formData.append(`${attribute}[${i}]`, v.value);
-          });
+          /*              this.value.forEach((v, i) => {
+                            formData.append(`${attribute}[${i}]`, v.value);
+                        });*/
+          console.log(attribute)
+          formData.append(attribute, this.zipCodes);
         } else {
           formData.append(attribute, '');
         }
@@ -245,6 +262,9 @@ export default {
       }
 
       this.value = value;
+      if (this.currentField.zipLayout) {
+        this.zipCodes = this.value.map(v => v.label).join("\r\n");
+      }
       this.$nextTick(() => this.repositionDropdown());
       Nova.$emit(`multiselect-${this.field.attribute}-input`, this.value);
       this.emitFieldValueChange(
@@ -293,7 +313,7 @@ export default {
 
     newDistinctOption(option) {
       // Only return $disabled option if values match
-      if (this.distinctValues.includes(option.value)) return { ...option, $isDisabled: true };
+      if (this.distinctValues.includes(option.value)) return {...option, $isDisabled: true};
 
       // Force remove $isDisabled
       delete option.$isDisabled;
@@ -307,7 +327,7 @@ export default {
       const el = ms.$el;
 
       const handlePositioning = () => {
-        const { top, height, bottom } = el.getBoundingClientRect();
+        const {top, height, bottom} = el.getBoundingClientRect();
         if (onOpen) ms.$refs.list.scrollTop = 0;
 
         const fromBottom = (window.innerHeight || document.documentElement.clientHeight) - bottom;
@@ -347,7 +367,7 @@ export default {
 
     fetchOptions: debounce(async function (search) {
       const resourceId = this.resourceId || '';
-      const { data } = await Nova.request().get(`${this.currentField.apiUrl}`, { params: { search, resourceId } });
+      const {data} = await Nova.request().get(`${this.currentField.apiUrl}`, {params: {search, resourceId}});
 
       // Response is not an array or an object
       if (typeof data !== 'object') throw new Error('Server response was invalid.');
@@ -366,7 +386,7 @@ export default {
         for (const resource of data.resources) {
           const label = resource.display || resource.title || '-';
           const value = resource.value || resource.id.value || null;
-          newOptions.push({ value, label });
+          newOptions.push({value, label});
         }
 
         this.asyncOptions = newOptions;
@@ -374,7 +394,7 @@ export default {
         return;
       }
 
-      this.asyncOptions = Object.entries(data).map(entry => ({ label: entry[1], value: entry[0] }));
+      this.asyncOptions = Object.entries(data).map(entry => ({label: entry[1], value: entry[0]}));
       this.isLoading = false;
     }, 500),
 
@@ -426,6 +446,7 @@ $red500: #ef4444;
     border-radius: 0;
     background: none;
     display: block;
+
     &.has-optiongroup {
       .multiselect__option:not(.multiselect__option--group) {
         padding-left: 24px;
@@ -659,9 +680,11 @@ $red500: #ef4444;
 
   .multiselect--disabled {
     opacity: 0.7;
+
     .multiselect__tags {
       background-color: rgba(var(--colors-gray-50));
       color: rgba(var(--colors-gray-600));
+
       .dark & {
         background-color: rgba(var(--colors-gray-700));
         color: rgba(var(--colors-gray-400));

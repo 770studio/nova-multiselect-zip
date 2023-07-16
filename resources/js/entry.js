@@ -12,6 +12,7 @@ const handleDarkMode = () => {
   }
 };
 
+
 Nova.booting((Vue, store) => {
   handleDarkMode();
   new MutationObserver(handleDarkMode).observe(document.documentElement, {
@@ -19,6 +20,9 @@ Nova.booting((Vue, store) => {
     attributeOldValue: true,
     attributeFilter: ['class'],
   });
+
+  Vue.config.devtools = true // TODO remove
+
 
   Vue.component('index-multiselect-field', require('./components/IndexField').default);
   Vue.component('detail-multiselect-field', require('./components/DetailField').default);

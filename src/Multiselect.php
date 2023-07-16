@@ -22,6 +22,7 @@ class Multiselect extends Field implements RelatableField
     protected $saveAsJSON = false;
     protected $keyName = null;
 
+
     /**
      * Sets the options available for select.
      *
@@ -108,6 +109,7 @@ class Multiselect extends Field implements RelatableField
 
     protected function resolveAttribute($resource, $attribute)
     {
+       // dd(6666, $resource);
         $singleSelect = $this->meta['singleSelect'] ?? false;
         $value = data_get($resource, str_replace('->', '.', $attribute));
         $saveAsJson = $this->shouldSaveAsJson($resource, $attribute);
@@ -119,6 +121,7 @@ class Multiselect extends Field implements RelatableField
 
     protected function fillAttributeFromRequest(NovaRequest $request, $requestAttribute, $model, $attribute)
     {
+
         $singleSelect = $this->meta['singleSelect'] ?? false;
         $value = $request->input($requestAttribute) ?: null;
         $saveAsJson = $this->shouldSaveAsJson($model, $attribute);
@@ -434,5 +437,12 @@ class Multiselect extends Field implements RelatableField
     public function asHtml()
     {
         return $this->withMeta(['asHtml' => true]);
+    }
+
+    public function zipLayout()
+    {
+
+        return $this->withMeta(['zipLayout' => true]);
+
     }
 }

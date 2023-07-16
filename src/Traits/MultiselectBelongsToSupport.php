@@ -2,13 +2,17 @@
 
 namespace Outl1ne\MultiselectField\Traits;
 
-use Exception;
-use RuntimeException;
-use Laravel\Nova\Nova;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
-use Laravel\Nova\TrashedStatus;
-use Laravel\Nova\Http\Requests\NovaRequest;
+use Laravel\Nova\Contracts\QueryBuilder;
 use Laravel\Nova\Fields\FormatsRelatableDisplayValues;
+use Laravel\Nova\Http\Requests\NovaRequest;
+use Laravel\Nova\Nova;
+use Laravel\Nova\Query\Builder;
+use Laravel\Nova\TrashedStatus;
+use Laravel\Nova\Util;
+use Outl1ne\MultiselectField\Multiselect;
+use RuntimeException;
 
 trait MultiselectBelongsToSupport
 {
@@ -22,7 +26,7 @@ trait MultiselectBelongsToSupport
      * Makes the field to manage a BelongsTo relationship.
      *
      * @param string $resourceClass The Nova Resource class for the other model.
-     * @return \Outl1ne\MultiselectField\Multiselect
+     * @return Multiselect
      **/
     public function belongsTo($resourceClass, $async = true)
     {
@@ -101,7 +105,7 @@ trait MultiselectBelongsToSupport
      * Makes the field to manage a BelongsToMany relationship.
      *
      * @param string $resourceClass The Nova Resource class for the other model.
-     * @return \Outl1ne\MultiselectField\Multiselect
+     * @return Multiselect
      **/
     public function belongsToMany($resourceClass, $async = true)
     {
@@ -167,9 +171,9 @@ trait MultiselectBelongsToSupport
     /**
      * Build an associatable query for the field.
      *
-     * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
-     * @param  bool  $withTrashed
-     * @return \Laravel\Nova\Contracts\QueryBuilder
+     * @param NovaRequest $request
+     * @param bool $withTrashed
+     * @return QueryBuilder
      */
     public function buildAssociatableQuery(NovaRequest $request, $withTrashed = false)
     {
@@ -179,7 +183,7 @@ trait MultiselectBelongsToSupport
 
         $query = Nova::version() >= '3.26.1'
             ? app()->make('Laravel\Nova\Contracts\QueryBuilder', [$resourceClass])
-            : new \Laravel\Nova\Query\Builder($resourceClass);
+            : new Builder($resourceClass);
 
         $request->first === 'true'
             ? $query->whereKey($model->newQueryWithoutScopes(), $request->current)
@@ -200,8 +204,8 @@ trait MultiselectBelongsToSupport
     /**
      * Get the associatable query method name.
      *
-     * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param NovaRequest $request
+     * @param Model $model
      * @return array
      */
     protected function associatableQueryCallable(NovaRequest $request, $model)
@@ -214,8 +218,8 @@ trait MultiselectBelongsToSupport
     /**
      * Get the attachable query method name.
      *
-     * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param NovaRequest $request
+     * @param Model $model
      * @return string
      */
     protected function associatableQueryMethod(NovaRequest $request, $model)
@@ -230,14 +234,14 @@ trait MultiselectBelongsToSupport
     /**
      * Format the given associatable resource.
      *
-     * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
-     * @param  mixed  $resource
+     * @param NovaRequest $request
+     * @param mixed $resource
      * @return array
      */
     public function formatAssociatableResource(NovaRequest $request, $resource)
     {
         $value = Nova::version() >= '3.25.0'
-            ? \Laravel\Nova\Util::safeInt($resource->getKey())
+            ? Util::safeInt($resource->getKey())
             : $resource->getKey();
 
         return array_filter([
